@@ -1,4 +1,4 @@
-import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, CreateDateColumn, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { CityEntity } from '@app/forecast/entities/city.entity';
 
 @Entity({ name: 'average_temperature' })
@@ -17,6 +17,9 @@ export class AverageTemperatureEntity {
 
   @Column({ type: 'decimal', precision: 10, scale: 7 })
   month: number;
+
+  @CreateDateColumn({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  timeStamp: Date;
 
   @ManyToOne(() => CityEntity, (city) => city.temperatures, { eager: true })
   city: CityEntity;
