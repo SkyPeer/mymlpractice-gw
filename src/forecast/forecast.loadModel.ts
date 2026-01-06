@@ -15,19 +15,19 @@ export class LoadModelService {
   ) {}
 
   async getTrainings(): Promise<Partial<TF_trainingEntity>[]> {
-    const data = await this.trainingRepository.find();
-    return data.map((training) => ({
+    const data: TF_trainingEntity[] = await this.trainingRepository.find();
+    return data.map((training: TF_trainingEntity) => ({
       epoch: Number(training.epoch),
       loss: Number(training.loss),
     }));
   }
 
-  async loadModelFromPostgreSQL(modelName = 'newModel') {
+  async loadModelFromPostgreSQL(modelId: number) {
     try {
       console.log('\n=== LOADING MODEL FROM POSTGRESQL ===');
 
       const result = await this.modelRepository.findOne({
-        where: { model_name: 'newModel' },
+        where: { id: modelId },
       });
 
       if (!result) {
@@ -35,7 +35,7 @@ export class LoadModelService {
         //throw new Error('Model not found in database');
       }
 
-      const { model_topology, weight_specs, weights } = result;
+      const { model_topology, weight_specs, weights, model_name } = result;
 
       // Parse model topology
       const modelTopology = JSON.parse(JSON.parse(model_topology));
@@ -60,11 +60,9 @@ export class LoadModelService {
         offset += bytes;
       }
 
-      // console.log('weightTensors', weightTensors);
-
       // Set the loaded weights to the model
       model.setWeights(weightTensors);
-      console.log(`✓ Model loaded from PostgreSQL: ${modelName}`);
+      console.log(`✓ Model loaded from PostgreSQL: ${model_name}`);
 
       // Cleanup
       // weightTensors.forEach(tensor => tensor.dispose());
