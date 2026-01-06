@@ -41,24 +41,27 @@ export class ForecastController {
     return modelId;
   }
 
-  @Post('/model')
+  @Put('/model')
   @Header('Cache-Control', 'no-store')
   // @UseGuards(AuthGuard)
   async createModel(@Body('modelParams') modelParams: CreatModelDto) {
     return await this.forecastService.createNewModel(modelParams);
   }
 
-  @Post('/retrain')
+  @Post('/model')
   @Header('Cache-Control', 'no-store')
   // @UseGuards(AuthGuard)
-  async reTrainModel(@Body('id') id: number) {
-    return this.forecastService.retrainModel(id);
+  async reTrainModel(
+    @Body() params: { id: number; modelParams: CreatModelDto }, // TODO: use UpdateModelDto
+  ) {
+    const { id, modelParams } = params;
+    return await this.forecastService.retrainModel(id, modelParams);
   }
 
   @Get('/predict')
   @Header('Cache-Control', 'no-store')
   // @UseGuards(AuthGuard)
-  async predict(modelId) {
+  async predict(modelId: number) {
     return this.forecastService.predict(modelId);
   }
 

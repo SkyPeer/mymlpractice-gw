@@ -13,23 +13,23 @@ import { CreatModelDto } from '@app/forecast/dto/createModel.dto';
 
 // TODO: NeedCheck dispose model
 
-// CreateModel
-function createModel() {
-  const model = tf.sequential({
-    layers: [
-      tf.layers.dense({ inputShape: [3], units: 8, activation: 'relu' }),
-      tf.layers.dense({ units: 1 }),
-    ],
-  });
-  model.compile({
-    optimizer: tf.train.adam(0.01),
-    loss: 'meanSquaredError',
-  });
-  return model;
-}
+// // CreateModel
+// function createModel() {
+//   const model = tf.sequential({
+//     layers: [
+//       tf.layers.dense({ inputShape: [3], units: 8, activation: 'relu' }),
+//       tf.layers.dense({ units: 1 }),
+//     ],
+//   });
+//   model.compile({
+//     optimizer: tf.train.adam(0.01),
+//     loss: 'meanSquaredError',
+//   });
+//   return model;
+// }
 
 // Helper function to create seasonal features
-function createFeatures(monthNumbers) {
+function createFeatures(monthNumbers: number[]) {
   console.log('\n=== createFeatures === START === ');
   const features = [];
 
@@ -131,109 +131,109 @@ export class ForecastService {
     }));
   }
 
-  async retrainModel(id: number) {
-    console.log('\n=== trainModel === START === ');
-
-    try {
-      const dataSet = await this.getSourceData();
-      const trainMonths = dataSet.months;
-      const trainTemperatures = dataSet.temps;
-
-      console.log('trainMonths', trainMonths);
-      console.log('trainTemperatures', trainTemperatures);
-
-      console.log('Creating model with seasonal features...');
-      const model = createModel();
-
-      const trainingLog: any[] = [];
-
-      // Create features with seasonal patterns
-      const trainFeatures = createFeatures(trainMonths);
-      const xData = tf.tensor2d(trainFeatures);
-      const yData = tf.tensor2d(trainTemperatures, [
-        trainTemperatures.length,
-        1,
-      ]);
-
-      // Train the model
-      console.log('Training model...');
-      await model.fit(xData, yData, {
-        epochs: 200, // 200  //TODO: config! Default 200
-        batchSize: 12, // 12 //TODO: config! Default 12
-        callbacks: {
-          onEpochEnd: (epoch: number, logs: any) => {
-            console.log('epoch:', epoch, ' - Log:', logs.loss);
-            trainingLog.push({ epoch, loss: logs.loss });
-            if (epoch % 50 === 0) {
-              //console.log(`Epoch ${epoch}: loss = ${logs.loss.toFixed(4)}`);
-            }
-          },
-        },
-      });
-
-      //await saveModelToPostgreSQL(model, 'newModel', trainMonthsX, trainY);
-
-      // ============================================
-      // Save ReTrainedModel
-      // ============================================
-      const savedModel = await this.saveModel.updateModelToPostgreSQL(
-        id,
-        model,
-      );
-
-      // ============================================
-      // Update TrainingLog
-      // ============================================
-      const data: TF_trainingEntity[] = trainingLog.map((item) => ({
-        ...item,
-        model: savedModel,
-      }));
-      // await this.trainingRepository.insert(data);
-
-      const sourceModel: TFModel_Entity = await this.getModel(id);
-
-      await this.trainingRepository.delete({ model: sourceModel });
-
-      // await this.averageTemperatureRepository
-      //   .createQueryBuilder('averageTemperature')
-      //   .update(AverageTemperatureEntity)
-      //   .set({ train: () => `CASE ${predicts} END` })
-      //   .where('month IN (:...months)', { months })
-      //   .execute();
-      //
-
-      // ============================================
-      // Get predictions for training data
-      // ============================================
-      const trainPredictions: any = model.predict(xData);
-      const trainPredictionsData = await trainPredictions.data();
-
-      const predictedPoints = [];
-      for (let i = 0; i < trainMonths.length; i++) {
-        predictedPoints.push({
-          x: trainMonths[i],
-          y: trainPredictionsData[i],
-        });
-      }
-
-      const months: number[] = predictedPoints.map((item) => item.x);
-      const predicts: any = predictedPoints
-        .map((item) => `WHEN month = ${item.x} THEN ${item.y}`)
-        .join(' ');
-
-      await this.averageTemperatureRepository
-        .createQueryBuilder('averageTemperature')
-        .update(AverageTemperatureEntity)
-        .set({ train: () => `CASE ${predicts} END` })
-        .where('month IN (:...months)', { months })
-        .execute();
-
-      return model;
-    } catch (err) {
-      console.error('Error training Model', err);
-      throw err;
-    }
-  }
+  // async retrainModel(id: number) {
+  //   console.log('\n=== trainModel === START === ');
+  //
+  //   try {
+  //     const dataSet = await this.getSourceData();
+  //     const trainMonths = dataSet.months;
+  //     const trainTemperatures = dataSet.temps;
+  //
+  //     console.log('trainMonths', trainMonths);
+  //     console.log('trainTemperatures', trainTemperatures);
+  //
+  //     console.log('Creating model with seasonal features...');
+  //     const model = createModel();
+  //
+  //     const trainingLog: any[] = [];
+  //
+  //     // Create features with seasonal patterns
+  //     const trainFeatures = createFeatures(trainMonths);
+  //     const xData = tf.tensor2d(trainFeatures);
+  //     const yData = tf.tensor2d(trainTemperatures, [
+  //       trainTemperatures.length,
+  //       1,
+  //     ]);
+  //
+  //     // Train the model
+  //     console.log('Training model...');
+  //     await model.fit(xData, yData, {
+  //       epochs: 200, // 200  //TODO: config! Default 200
+  //       batchSize: 12, // 12 //TODO: config! Default 12
+  //       callbacks: {
+  //         onEpochEnd: (epoch: number, logs: any) => {
+  //           console.log('epoch:', epoch, ' - Log:', logs.loss);
+  //           trainingLog.push({ epoch, loss: logs.loss });
+  //           if (epoch % 50 === 0) {
+  //             //console.log(`Epoch ${epoch}: loss = ${logs.loss.toFixed(4)}`);
+  //           }
+  //         },
+  //       },
+  //     });
+  //
+  //     //await saveModelToPostgreSQL(model, 'newModel', trainMonthsX, trainY);
+  //
+  //     // ============================================
+  //     // Save ReTrainedModel
+  //     // ============================================
+  //     // const savedModel = await this.saveModel.updateModelToPostgreSQL(
+  //     //   id,
+  //     //   model,
+  //     // );
+  //
+  //     // ============================================
+  //     // Update TrainingLog
+  //     // ============================================
+  //     // const data: TF_trainingEntity[] = trainingLog.map((item) => ({
+  //     //   ...item,
+  //     //   model: savedModel,
+  //     // }));
+  //     // await this.trainingRepository.insert(data);
+  //
+  //     const sourceModel: TFModel_Entity = await this.getModel(id);
+  //
+  //     await this.trainingRepository.delete({ model: sourceModel });
+  //
+  //     // await this.averageTemperatureRepository
+  //     //   .createQueryBuilder('averageTemperature')
+  //     //   .update(AverageTemperatureEntity)
+  //     //   .set({ train: () => `CASE ${predicts} END` })
+  //     //   .where('month IN (:...months)', { months })
+  //     //   .execute();
+  //     //
+  //
+  //     // ============================================
+  //     // Get predictions for training data
+  //     // ============================================
+  //     const trainPredictions: any = model.predict(xData);
+  //     const trainPredictionsData = await trainPredictions.data();
+  //
+  //     const predictedPoints = [];
+  //     for (let i = 0; i < trainMonths.length; i++) {
+  //       predictedPoints.push({
+  //         x: trainMonths[i],
+  //         y: trainPredictionsData[i],
+  //       });
+  //     }
+  //
+  //     const months: number[] = predictedPoints.map((item) => item.x);
+  //     const predicts: any = predictedPoints
+  //       .map((item) => `WHEN month = ${item.x} THEN ${item.y}`)
+  //       .join(' ');
+  //
+  //     await this.averageTemperatureRepository
+  //       .createQueryBuilder('averageTemperature')
+  //       .update(AverageTemperatureEntity)
+  //       .set({ train: () => `CASE ${predicts} END` })
+  //       .where('month IN (:...months)', { months })
+  //       .execute();
+  //
+  //     return model;
+  //   } catch (err) {
+  //     console.error('Error training Model', err);
+  //     throw err;
+  //   }
+  // }
 
   private async predictData(model) {
     // ============================================
@@ -312,11 +312,8 @@ export class ForecastService {
   }
 
   async createNewModel(modelParams: CreatModelDto) {
-    // const { epochs, batchSize, model_name, description } = modelParams;
-
     try {
       const dataSet = await this.getSeasonsData();
-
       const trainedModel = await this.trainingModel.trainNewModel(
         modelParams,
         dataSet,
@@ -333,7 +330,27 @@ export class ForecastService {
     }
   }
 
-  async predict(modelId) {
+  async retrainModel(id: number, modelParams: CreatModelDto) {
+    try {
+      const dataSet = await this.getSeasonsData();
+      const trainedModel = await this.trainingModel.retrainModel(
+        id,
+        modelParams,
+        dataSet,
+      );
+
+      const { trainingLog } = trainedModel;
+      return { trainingLog };
+    } catch (error) {
+      console.error(error);
+      throw new HttpException(
+        'Error creating model',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async predict(modelId: number) {
     const model = await this.loadModel.loadModelFromPostgreSQL(modelId);
     if (!model) {
       // TODO: Create model

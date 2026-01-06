@@ -7,10 +7,7 @@ import { TF_trainingEntity } from '@app/forecast/entities/tf_training.entity';
 import { AverageTemperatureEntity } from '@app/forecast/entities/average_temperature.entity';
 import { SaveModelService } from '@app/forecast/forecast.saveModel';
 import { CreatModelDto } from '@app/forecast/dto/createModel.dto';
-
-// TODO: Set specs by params
-// TODO: Set dataset by params
-// TODO: Set model by city
+import { LoadModelService } from '@app/forecast/forecast.loadModel';
 
 @Injectable()
 export class TrainingService {
@@ -20,9 +17,22 @@ export class TrainingService {
     @InjectRepository(TF_trainingEntity)
     private readonly trainingRepository: Repository<TF_trainingEntity>,
     private readonly saveModel: SaveModelService,
+    private readonly loadModel: LoadModelService,
+
+    @InjectRepository(TFModel_Entity)
+    private readonly modelRepository: Repository<TFModel_Entity>,
   ) {}
 
+  // ============================================
   // CreateTensorModel
+  // ============================================
+  private async getModel(id: number): Promise<TFModel_Entity> {
+    return await this.modelRepository.findOne({ where: { id: Number(id) } });
+  }
+
+  // ============================================
+  // CreateTensorModel
+  // ============================================
   private createTensorModel() {
     const model = tf.sequential({
       layers: [
@@ -37,7 +47,9 @@ export class TrainingService {
     return model;
   }
 
-  // Helper function to create seasonal features
+  // ============================================
+  // Сreate seasonal features
+  // ============================================
   private createTensorFeatures(monthNumbers) {
     console.log('\n=== createFeatures === START === ');
     const features = [];
@@ -61,13 +73,13 @@ export class TrainingService {
     return features;
   }
 
-  async getTrainedModel(
+  private async getTrainedModel(
     modelParams: CreatModelDto,
-    dataSet: any,
+    dataSet: any, // TODO: needs to be typified
   ): Promise<any> {
     console.log('\n=== trainModel === START === ');
 
-    const { epochs, batchSize, model_name, description } = modelParams;
+    const { epochs, batchSize } = modelParams;
 
     try {
       const trainMonths = dataSet.months;
@@ -93,33 +105,16 @@ export class TrainingService {
         batchSize,
         callbacks: {
           onEpochEnd: (epoch: number, logs: any) => {
-            console.log('epoch:', epoch, ' - Log:', logs.loss);
             trainingLog.push({ epoch, loss: logs.loss });
 
-            // Training log
+            // Training log for debug
+            // console.log('epoch:', epoch, ' - Log:', logs.loss);
             // if (epoch % 50 === 0) {
             //   console.log(`Epoch ${epoch}: loss = ${logs.loss.toFixed(4)}`);
             // }
           },
         },
       });
-
-      // ============================================
-      // Save TrainedModel
-      // ============================================
-      // const savedModel: TFModel_Entity = await this.saveModel.saveModel(
-      //   modelParams,
-      //   model,
-      // );
-
-      // ============================================
-      // Save TrainingLog
-      // ============================================
-      // const data: Partial<TF_trainingEntity>[] = trainingLog.map((item) => ({
-      //   ...item,
-      //   model: savedModel,
-      // }));
-      // await this.trainingRepository.insert(data);
 
       // ============================================
       // Get predictions for training data
@@ -135,18 +130,6 @@ export class TrainingService {
         });
       }
 
-      // const months: number[] = predictedPoints.map((item) => item.x);
-      // const predicts: any = predictedPoints
-      //   .map((item) => `WHEN month = ${item.x} THEN ${item.y}`)
-      //   .join(' ');
-      //
-      // await this.averageTemperatureRepository
-      //   .createQueryBuilder('averageTemperature')
-      //   .update(AverageTemperatureEntity)
-      //   .set({ train: () => `CASE ${predicts} END` })
-      //   .where('month IN (:...months)', { months })
-      //   .execute();
-
       return { model, trainingLog, predictedPoints };
     } catch (err) {
       console.error('Error training Model', err);
@@ -154,6 +137,9 @@ export class TrainingService {
     }
   }
 
+  // ============================================
+  // Update DataSet
+  // ============================================
   private async updateDataSet(predictedPoints) {
     const months: number[] = predictedPoints.map((item) => item.x);
     const predicts: any = predictedPoints
@@ -173,14 +159,19 @@ export class TrainingService {
       modelParams,
       dataSet,
     );
-
     await this.updateDataSet(predictedPoints);
 
+    // ============================================
+    // Save TrainedModel
+    // ============================================
     const savedModel: TFModel_Entity = await this.saveModel.saveModel(
       modelParams,
       model,
     );
 
+    // ============================================
+    // Save TrainingLog
+    // ============================================
     const trainLogs: Partial<TF_trainingEntity>[] = trainingLog.map(
       (item: Partial<TF_trainingEntity>) => ({
         ...item,
@@ -192,11 +183,52 @@ export class TrainingService {
     return { trainingLog };
   }
 
-  async updateModel(
+  async retrainModel(
     id: number,
     modelParams: CreatModelDto,
     dataSet: any,
   ): Promise<any> {
-    return null;
+    const sourceModel = await this.getModel(id);
+    const { model_name, description, epochs, batchSize } = sourceModel;
+
+    // Merge sourceParams and newParams
+    const _modelParams = {
+      model_name,
+      description,
+      epochs,
+      batchSize,
+      ...modelParams,
+    };
+
+    const { model, trainingLog, predictedPoints } = await this.getTrainedModel(
+      _modelParams,
+      dataSet,
+    );
+
+    await this.updateDataSet(predictedPoints);
+
+    // ============================================
+    // Update TrainedModel
+    // ============================================
+    const updatedModel: TFModel_Entity = await this.saveModel.updateModel(
+      id,
+      _modelParams,
+      model,
+    );
+
+    // ============================================
+    // Update TrainingLog
+    // ============================================
+    const trainLogs: Partial<TF_trainingEntity>[] = trainingLog.map(
+      (item: Partial<TF_trainingEntity>) => ({
+        ...item,
+        model: updatedModel,
+      }),
+    );
+
+    await this.trainingRepository.delete({ model: sourceModel });
+    await this.trainingRepository.insert(trainLogs);
+
+    return { trainingLog };
   }
 }
