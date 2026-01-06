@@ -3,11 +3,15 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DeleteResult, DataSource } from 'typeorm';
 import * as tf from '@tensorflow/tfjs-node';
 //import { TrainingService } from '@app/forecast/forecast.training.service';
-import { SaveModelService } from '@app/forecast/forecast.saveModel.service';
-import { LoadModelService } from '@app/forecast/forecast.loadModel.service';
+import { SaveModelService } from '@app/forecast/forecast.saveModel';
+import { LoadModelService } from '@app/forecast/forecast.loadModel';
 import { TF_trainingEntity } from '@app/forecast/entities/tf_training.entity';
 import { TFModel_Entity } from '@app/forecast/entities/tf_model.entity';
 import { AverageTemperatureEntity } from '@app/forecast/entities/average_temperature.entity';
+import { TrainingService } from '@app/forecast/forecast.training';
+import { CreatModelDto } from '@app/forecast/dto/createModel.dto';
+
+// TODO: NeedCheck dispose model
 
 // CreateModel
 function createModel() {
@@ -58,51 +62,82 @@ export class ForecastService {
     private readonly trainingRepository: Repository<TF_trainingEntity>,
     private readonly saveModel: SaveModelService,
     private readonly loadModel: LoadModelService,
+    private readonly trainingModel: TrainingService,
+
+    @InjectRepository(TFModel_Entity)
+    private readonly modelRepository: Repository<TFModel_Entity>,
   ) {}
 
-  // TODO: GetData FromDataBase
+  private async getModel(id: number): Promise<TFModel_Entity> {
+    return await this.modelRepository.findOne({ where: { id: Number(id) } });
+  }
+
   // async function getPartialTemperatures(): Promise<Partial<AverageTemperatureEntity>[]> {
   async getSeasonsData(): Promise<any> {
+    // TODO: NeedUpdate by Training/Predict
     const data = await this.averageTemperatureRepository.find();
 
-    const labels = data.map((item) => Number(item.month));
+    console.log('getSeasonsData  data', data);
+
+    const months = data.map((item) => Number(item.month));
     const predicts = [];
     const trainings = [];
     const temps = [];
 
     data.forEach((item) => {
       if (item.temp) {
-        temps.push({ x: Number(item.month), y: Number(item.temp) });
-        trainings.push({ x: Number(item.month), y: Number(item.predict) });
+        // temps.push({ x: Number(item.month), y: Number(item.temp) });
+        temps.push(Number(item.temp));
+
+        if (item.predict) {
+          trainings.push(Number(item.predict));
+        }
       } else {
-        predicts.push({ x: Number(item.month), y: Number(item.predict) });
+        // predicts.push({ x: Number(item.month), y: Number(item.predict) });
+        predicts.push(Number(item.predict));
       }
     });
 
-    const lastTraining = trainings[trainings.length - 1];
-    predicts.unshift(lastTraining);
+    // const lastTraining = trainings[trainings.length - 1];
+    // predicts.unshift(lastTraining);
 
     return {
-      labels,
+      months,
       predicts,
       trainings,
       temps,
     };
-
   }
 
   // private async getAverageTemperatureData(): Promise<AverageTemperatureEntity[]> {
   //   return await this.averageTemperatureRepository.find();
   // }
 
-  // TODO: Maybe Private?
-  async trainModel() {
+  async getSourceData(): Promise<any> {
+    const data = await this.averageTemperatureRepository.find({
+      order: { month: 'ASC' },
+    });
+
+    // TODO: Max/Min settings for chart
+    // const chartSettings = {max: 25, min:10}
+
+    // TODO: Convert data by orm
+    return data.map((item: any) => ({
+      id: Number(item.id),
+      temp: item.temp ? Number(item.temp) : null,
+      month: item.month ? Number(item.month) : null,
+      predict: item.predict ? Number(item.predict) : null,
+      train: item.train ? Number(item.train) : null,
+    }));
+  }
+
+  async retrainModel(id: number) {
     console.log('\n=== trainModel === START === ');
 
     try {
-      const dataSet = await this.getSeasonsData();
-      const trainMonths = dataSet.map((item) => item.month);
-      const trainTemperatures = dataSet.map((item) => item.temp);
+      const dataSet = await this.getSourceData();
+      const trainMonths = dataSet.months;
+      const trainTemperatures = dataSet.temps;
 
       console.log('trainMonths', trainMonths);
       console.log('trainTemperatures', trainTemperatures);
@@ -123,8 +158,8 @@ export class ForecastService {
       // Train the model
       console.log('Training model...');
       await model.fit(xData, yData, {
-        epochs: 200, // 200  //TODO: config!
-        batchSize: 12, // 12 //TODO: config!
+        epochs: 200, // 200  //TODO: config! Default 200
+        batchSize: 12, // 12 //TODO: config! Default 12
         callbacks: {
           onEpochEnd: (epoch: number, logs: any) => {
             console.log('epoch:', epoch, ' - Log:', logs.loss);
@@ -139,19 +174,33 @@ export class ForecastService {
       //await saveModelToPostgreSQL(model, 'newModel', trainMonthsX, trainY);
 
       // ============================================
-      // Save TrainedModel
+      // Save ReTrainedModel
       // ============================================
-      const savedModel: TFModel_Entity =
-        await this.saveModel.saveModelToPostgreSQL(model, 'newModel');
+      const savedModel = await this.saveModel.updateModelToPostgreSQL(
+        id,
+        model,
+      );
 
       // ============================================
-      // Save TrainingLog
+      // Update TrainingLog
       // ============================================
       const data: TF_trainingEntity[] = trainingLog.map((item) => ({
         ...item,
         model: savedModel,
       }));
-      await this.trainingRepository.insert(data);
+      // await this.trainingRepository.insert(data);
+
+      const sourceModel: TFModel_Entity = await this.getModel(id);
+
+      await this.trainingRepository.delete({ model: sourceModel });
+
+      // await this.averageTemperatureRepository
+      //   .createQueryBuilder('averageTemperature')
+      //   .update(AverageTemperatureEntity)
+      //   .set({ train: () => `CASE ${predicts} END` })
+      //   .where('month IN (:...months)', { months })
+      //   .execute();
+      //
 
       // ============================================
       // Get predictions for training data
@@ -168,7 +217,6 @@ export class ForecastService {
       }
 
       const months: number[] = predictedPoints.map((item) => item.x);
-      // const predicts: number[] = predictedPoints.map((item) => item.y);
       const predicts: any = predictedPoints
         .map((item) => `WHEN month = ${item.x} THEN ${item.y}`)
         .join(' ');
@@ -176,7 +224,7 @@ export class ForecastService {
       await this.averageTemperatureRepository
         .createQueryBuilder('averageTemperature')
         .update(AverageTemperatureEntity)
-        .set({ predict: () => `CASE ${predicts} END` })
+        .set({ train: () => `CASE ${predicts} END` })
         .where('month IN (:...months)', { months })
         .execute();
 
@@ -236,6 +284,7 @@ export class ForecastService {
     const data: any = nextYearResults.map((item) => ({
       month: item.monthNumber,
       predict: item.temperature,
+      cityId: 1,
     }));
     await this.averageTemperatureRepository.save(data);
 
@@ -252,17 +301,7 @@ export class ForecastService {
     // yData.dispose();
 
     return {
-      originalPoints: originalData.map((item) => ({
-        x: item.month,
-        y: item.month,
-      })),
-      originalPointsX: originalData.map((item) => item.month),
-      originalPointsY: originalData.map((item) => item.temp),
-
-      // predictedPoints,
-      // predictedPointsX: predictedPoints.map(item => item.x),
-      // predictedPointsY: predictedPoints.map(item => item.y),
-
+      ...originalData,
       nextYearPredictions: nextYearResults.map((item) => ({
         x: item.monthNumber,
         y: item.temperature,
@@ -272,13 +311,33 @@ export class ForecastService {
     };
   }
 
-  async predict() {
-    // const _model = await loadModelFromPostgreSQL('newModel');
-    const model = await this.loadModel.loadModelFromPostgreSQL('newModel');
+  async createNewModel(modelParams: CreatModelDto) {
+    // const { epochs, batchSize, model_name, description } = modelParams;
+
+    try {
+      const dataSet = await this.getSeasonsData();
+
+      const trainedModel = await this.trainingModel.trainNewModel(
+        modelParams,
+        dataSet,
+      );
+
+      const { trainingLog } = trainedModel;
+      return { trainingLog };
+    } catch (error) {
+      console.error(error);
+      throw new HttpException(
+        'Error creating model',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  async predict(modelId) {
+    const model = await this.loadModel.loadModelFromPostgreSQL(modelId);
     if (!model) {
       // TODO: Create model
-      const trainedModel = await this.trainModel();
-      return await this.predictData(trainedModel);
+      //return await this.predictData(trainedModel);
     }
 
     return await this.predictData(model);
