@@ -7,7 +7,7 @@ const config: ConnectionOptions = {
   username: 'postgres',
   password: '',
   entities: [__dirname + '/**/*.entity{.ts,.js}'],
-  database: 'streamway',
+  database: 'mymlpractice-dev',
   schema: 'public',
   // autoLoadEntities: true,
   synchronize: false,
