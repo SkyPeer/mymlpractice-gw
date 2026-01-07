@@ -30,7 +30,7 @@ export class LoadModelService {
   async getTrainingsByModelId(
     modelId: number,
   ): Promise<Partial<TF_trainingEntity>[]> {
-    const trainings: TF_trainingEntity[] = await this.trainingRepository.find({
+    return await this.trainingRepository.find({
       where: {
         model: { id: modelId },
       },
@@ -39,12 +39,6 @@ export class LoadModelService {
       // or set { eager: true } TF_trainingEntity:
       // @ManyToOne(() => TFModel_Entity...
     });
-
-    return trainings.map((training: TF_trainingEntity) => ({
-      id: training.id,
-      epoch: training.epoch,
-      loss: training.loss,
-    }));
   }
 
   async loadModelFromPostgreSQL(modelId: number) {
