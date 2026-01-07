@@ -16,10 +16,18 @@ export class TF_trainingEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ type: 'decimal', precision: 10, scale: 7 })
-  epoch: number;
+  @Column({ type: 'integer', nullable: true })
+  epoch: number | null;
 
-  @Column({ type: 'decimal', precision: 10, scale: 7 })
+  @Column({
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    transformer: {
+      to: (value: number) => value,
+      from: (value: string) => parseFloat(value),
+    },
+  })
   loss: number;
 
   // @Column()

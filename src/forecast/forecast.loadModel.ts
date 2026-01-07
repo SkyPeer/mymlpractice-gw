@@ -40,10 +40,16 @@ export class LoadModelService {
       // @ManyToOne(() => TFModel_Entity...
     });
 
+    // return trainings.map((training: TF_trainingEntity) => ({
+    //   id: Number(training.id),
+    //   epoch: Number(training.epoch),
+    //   loss: Number(training.loss),
+    // }));
+
     return trainings.map((training: TF_trainingEntity) => ({
-      id: Number(training.id),
-      epoch: Number(training.epoch),
-      loss: Number(training.loss),
+      id: training.id,
+      epoch: training.epoch,
+      loss: training.loss,
     }));
   }
 
