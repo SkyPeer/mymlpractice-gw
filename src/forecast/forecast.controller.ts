@@ -28,26 +28,18 @@ export class ForecastController {
   @Header('Cache-Control', 'no-store')
   // @UseGuards(AuthGuard)
   async getInitialData() {
-    // const data = await this.forecastService.getSeasonsData();
-    // console.log('data', data);
     return await this.forecastService.getSourceData();
   }
 
-  @Get('/train')
-  @Header('Cache-Control', 'no-store')
-  // @UseGuards(AuthGuard)
-  async trainModel(@Body('modelId') modelId: number) {
-    // return this.forecastService.trainModel(modelName);
-    return modelId;
-  }
-
+  // Create new model
   @Put('/model')
   @Header('Cache-Control', 'no-store')
   // @UseGuards(AuthGuard)
   async createModel(@Body('modelParams') modelParams: CreatModelDto) {
-    return await this.forecastService.createNewModel(modelParams);
+    return await this.forecastService.trainNewModel(modelParams);
   }
 
+  // Update model
   @Post('/model')
   @Header('Cache-Control', 'no-store')
   // @UseGuards(AuthGuard)
@@ -58,17 +50,17 @@ export class ForecastController {
     return await this.forecastService.retrainModel(id, modelParams);
   }
 
-  @Get('/predict')
+  @Post('/predict')
   @Header('Cache-Control', 'no-store')
   // @UseGuards(AuthGuard)
-  async predict(modelId: number) {
+  async predict(@Body('modelId') modelId: number) {
     return this.forecastService.predict(modelId);
   }
 
-  @Get('/model')
+  @Get('/trainings')
   @Header('Cache-Control', 'no-store')
   // @UseGuards(AuthGuard)
-  async model() {
-    return this.loadModelService.getTrainings();
+  async getModelTrainings(@Query('id') id: number) {
+    return this.loadModelService.getTrainings(id);
   }
 }

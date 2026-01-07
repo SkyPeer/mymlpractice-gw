@@ -26,13 +26,6 @@ export class TrainingService {
   // ============================================
   // CreateTensorModel
   // ============================================
-  private async getModel(id: number): Promise<TFModel_Entity> {
-    return await this.modelRepository.findOne({ where: { id: Number(id) } });
-  }
-
-  // ============================================
-  // CreateTensorModel
-  // ============================================
   private createTensorModel() {
     const model = tf.sequential({
       layers: [
@@ -48,9 +41,9 @@ export class TrainingService {
   }
 
   // ============================================
-  // Сreate seasonal features
+  // Create seasonal features
   // ============================================
-  private createTensorFeatures(monthNumbers) {
+  createTensorFeatures(monthNumbers) {
     console.log('\n=== createFeatures === START === ');
     const features = [];
 
@@ -186,9 +179,9 @@ export class TrainingService {
   async retrainModel(
     id: number,
     modelParams: CreatModelDto,
-    dataSet: any,
+    dataSet: any, // TODO: needs to be typified
+    sourceModel: any,
   ): Promise<any> {
-    const sourceModel = await this.getModel(id);
     const { model_name, description, epochs, batchSize } = sourceModel;
 
     // Merge sourceParams and newParams

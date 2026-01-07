@@ -9,6 +9,7 @@ import { LoadModelService } from '@app/forecast/forecast.loadModel';
 import { TFModel_Entity } from '@app/forecast/entities/tf_model.entity';
 import { TF_trainingEntity } from '@app/forecast/entities/tf_training.entity';
 import { AverageTemperatureEntity } from '@app/forecast/entities/average_temperature.entity';
+import { PredictService } from '@app/forecast/forecast.predict';
 
 @Module({
   imports: [
@@ -25,12 +26,14 @@ import { AverageTemperatureEntity } from '@app/forecast/entities/average_tempera
     TrainingService,
     SaveModelService,
     LoadModelService,
+    PredictService,
   ],
   exports: [
     ForecastService,
     TrainingService,
     SaveModelService,
     LoadModelService,
+    PredictService,
   ],
 })
 export class ForecastModule {}

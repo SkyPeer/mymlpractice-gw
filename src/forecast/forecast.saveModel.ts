@@ -3,17 +3,15 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { TFModel_Entity } from '@app/forecast/entities/tf_model.entity';
 import { CreatModelDto } from '@app/forecast/dto/createModel.dto';
+import { LoadModelService } from '@app/forecast/forecast.loadModel';
 
 @Injectable()
 export class SaveModelService {
   constructor(
     @InjectRepository(TFModel_Entity)
     private readonly modelRepository: Repository<TFModel_Entity>,
+    private readonly loadModelService: LoadModelService,
   ) {}
-
-  private async getModel(id: number): Promise<TFModel_Entity> {
-    return await this.modelRepository.findOne({ where: { id: Number(id) } });
-  }
 
   private async prepareModelToPostgreSQL(
     modelParams: CreatModelDto,
@@ -71,9 +69,9 @@ export class SaveModelService {
     const updateModel = await this.prepareModelToPostgreSQL(modelParams, model);
     console.log(`✓ Model updated to PostgreSQL: ${modelParams.model_name}`);
 
-    // // TODO: Cleanup
-    // // weightData.forEach(tensor => tensor.dispose());
+    // TODO: Cleanup
+    // weightData.forEach(tensor => tensor.dispose());
     await this.modelRepository.update(id, updateModel);
-    return this.getModel(id);
+    return this.loadModelService.getModelById(id);
   }
 }
