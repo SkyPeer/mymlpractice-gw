@@ -22,6 +22,10 @@ export class TF_trainingEntity {
   @Column({ type: 'decimal', precision: 10, scale: 7 })
   loss: number;
 
-  @ManyToOne(() => TFModel_Entity, (model) => model.trainings, { eager: true })
+  // @Column()
+  // modelId: number;
+
+  @ManyToOne(() => TFModel_Entity, (model) => model.trainings, { eager: false })
   model: TFModel_Entity;
+  // @JoinColumn({ name: 'modelId' })
 }

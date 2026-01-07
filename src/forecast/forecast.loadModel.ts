@@ -27,26 +27,21 @@ export class LoadModelService {
     return model;
   }
 
-  // TODO: getTrainingsById
-  async getTrainings(id: number): Promise<Partial<TF_trainingEntity>[]> {
-    const model: TFModel_Entity = await this.getModelById(id);
-    const data: TF_trainingEntity[] = await this.trainingRepository.find({
-      where: { model },
+  async getTrainingsByModelId(
+    modelId: number,
+  ): Promise<Partial<TF_trainingEntity>[]> {
+    const trainings: TF_trainingEntity[] = await this.trainingRepository.find({
+      where: {
+        model: { id: modelId },
+      },
+      // relations: ['model']
+      // TODO: use if model(relation) need
+      // or set { eager: true } TF_trainingEntity:
+      // @ManyToOne(() => TFModel_Entity...
     });
 
-    console.log(' ');
-    console.log(' ');
-    console.log(' ');
-    console.log(' ');
-    console.log('model', model);
-    console.log(' ');
-    console.log(' ');
-    console.log('data', data);
-    console.log(' ');
-    console.log(' ');
-    console.log(' ');
-
-    return data.map((training: TF_trainingEntity) => ({
+    return trainings.map((training: TF_trainingEntity) => ({
+      id: Number(training.id),
       epoch: Number(training.epoch),
       loss: Number(training.loss),
     }));
