@@ -69,7 +69,8 @@ export class ForecastService {
     // TODO: Max/Min settings for chart
     // const chartSettings = {max: 25, min:10}
 
-    // TODO: Convert data by orm
+    // TODO: Convert data without Number()
+    // TODO: Fix AverageTemperatureEntity
     return data.map((item: any) => ({
       id: Number(item.id),
       temp: item.temp ? Number(item.temp) : null,

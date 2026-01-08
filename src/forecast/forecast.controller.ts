@@ -63,4 +63,11 @@ export class ForecastController {
   async getModelTrainings(@Query('modelId') modelId: number) {
     return this.loadModelService.getTrainingsByModelId(modelId);
   }
+
+  @Get('/models')
+  @Header('Cache-Control', 'no-store')
+  // @UseGuards(AuthGuard)
+  async getModels() {
+    return await this.loadModelService.getModels();
+  }
 }

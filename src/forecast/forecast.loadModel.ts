@@ -27,9 +27,7 @@ export class LoadModelService {
     return model;
   }
 
-  async getTrainingsByModelId(
-    modelId: number,
-  ): Promise<Partial<TF_trainingEntity>[]> {
+  async getTrainingsByModelId(modelId: number): Promise<TF_trainingEntity[]> {
     return await this.trainingRepository.find({
       where: {
         model: { id: modelId },
@@ -39,6 +37,20 @@ export class LoadModelService {
       // or set { eager: true } TF_trainingEntity:
       // @ManyToOne(() => TFModel_Entity...
     });
+  }
+
+  async getModels(): Promise<Partial<TFModel_Entity>[]> {
+    const models: TFModel_Entity[] = await this.modelRepository.find();
+
+    return models.map(
+      ({ id, model_name, description, epochs, batchSize }: TFModel_Entity) => ({
+        id,
+        model_name,
+        description,
+        epochs,
+        batchSize,
+      }),
+    );
   }
 
   async loadModelFromPostgreSQL(modelId: number) {
