@@ -10,6 +10,7 @@ import { TFModel_Entity } from '@app/forecast/entities/tf_model.entity';
 import { TF_trainingEntity } from '@app/forecast/entities/tf_training.entity';
 import { AverageTemperatureEntity } from '@app/forecast/entities/average_temperature.entity';
 import { PredictService } from '@app/forecast/forecast.predict';
+import { CityEntity } from '@app/forecast/entities/city.entity';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { PredictService } from '@app/forecast/forecast.predict';
       TFModel_Entity,
       TF_trainingEntity,
       AverageTemperatureEntity,
+      CityEntity,
     ]),
   ],
   controllers: [ForecastController],

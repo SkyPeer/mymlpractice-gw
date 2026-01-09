@@ -43,7 +43,7 @@ export class TrainingService {
   // ============================================
   // Create seasonal features
   // ============================================
-  createTensorFeatures(monthNumbers) {
+  createTensorFeatures(monthNumbers: number[]) {
     console.log('\n=== createFeatures === START === ');
     const features = [];
 
@@ -135,14 +135,22 @@ export class TrainingService {
   // ============================================
   private async updateDataSet(predictedPoints) {
     const months: number[] = predictedPoints.map((item) => item.x);
-    const predicts: any = predictedPoints
+
+    const trainings: any = predictedPoints
       .map((item) => `WHEN month = ${item.x} THEN ${item.y}`)
       .join(' ');
+
+    console.log(' ');
+    console.log(' ');
+    console.log('trainings', trainings);
+    console.log(' ');
+    console.log(' ');
+
 
     await this.averageTemperatureRepository
       .createQueryBuilder('averageTemperature')
       .update(AverageTemperatureEntity)
-      .set({ train: () => `CASE ${predicts} END` })
+      .set({ train: () => `CASE ${trainings} END` })
       .where('month IN (:...months)', { months })
       .execute();
   }

@@ -6,6 +6,7 @@ import * as tf from '@tensorflow/tfjs-node';
 import { AverageTemperatureEntity } from '@app/forecast/entities/average_temperature.entity';
 import { LoadModelService } from '@app/forecast/forecast.loadModel';
 import { TrainingService } from '@app/forecast/forecast.training';
+import { CityEntity } from '@app/forecast/entities/city.entity';
 
 @Injectable()
 export class PredictService {
@@ -19,7 +20,12 @@ export class PredictService {
     private readonly trainingService: TrainingService,
   ) {}
 
-  async predictData(model: any, dataSet: any, nextYearMonths: number[]) {
+  async predictData(
+    city: CityEntity,
+    model: any,
+    dataSet: any,
+    nextYearMonths: number[],
+  ) {
     // ============================================
     // PREDICT FOR NEXT YEAR (2025)
     // Months 37-48
@@ -27,50 +33,73 @@ export class PredictService {
 
     console.log('\n=== PREDICTIONS FOR NEXT YEAR (2025) from Save Model ===');
 
-    // const nextYearMonths = [37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48];
     const nextYearFeatures =
       this.trainingService.createTensorFeatures(nextYearMonths);
     const nextYearX = tf.tensor2d(nextYearFeatures);
     const nextYearPredictions = model.predict(nextYearX);
     const nextYearData = await nextYearPredictions.data();
 
-    const monthNames = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
+    // const monthNames = [
+    //   'Jan',
+    //   'Feb',
+    //   'Mar',
+    //   'Apr',
+    //   'May',
+    //   'Jun',
+    //   'Jul',
+    //   'Aug',
+    //   'Sep',
+    //   'Oct',
+    //   'Nov',
+    //   'Dec',
+    // ];
 
     const nextYearResults = [];
     for (let i = 0; i < nextYearMonths.length; i++) {
       const monthNum = nextYearMonths[i];
-      const calendarMonth = ((monthNum - 1) % 12) + 1;
+      //const calendarMonth = ((monthNum - 1) % 12) + 1;
       const temp = nextYearData[i];
       nextYearResults.push({
-        monthNumber: monthNum,
-        calendarMonth: calendarMonth,
-        monthName: monthNames[i],
-        temperature: temp,
+        monthNumber: monthNum, //x
+        //calendarMonth: calendarMonth,
+        //monthName: monthNames[i],
+        cityId: city.id,
+        temperature: temp, //y
       });
-      console.log(`${monthNames[i]} 2025: ${temp.toFixed(1)}°C`);
+      // console.log(`${monthNames[i]} 2025: ${temp.toFixed(1)}°C`);
     }
 
-    const data: any = nextYearResults.map((item) => ({
-      month: item.monthNumber,
-      predict: item.temperature,
-      cityId: 1,
-    }));
-    await this.averageTemperatureRepository.save(data);
-
     // ============================================
+    // Update or insert by sql
+    // await this.averageTemperatureRepository.query(`
+    //     INSERT INTO average_temperature (month, "cityId", predict)
+    //     VALUES ${nextYearResults
+    //       .map(
+    //         ({ monthNumber, cityId, temperature }) =>
+    //           `(${monthNumber}, ${cityId}, ${temperature})`,
+    //       )
+    //       .join(', ')}
+    //       ON CONFLICT (month, "cityId")
+    //     DO UPDATE SET predict = EXCLUDED.predict
+    // `);
+    //
+    // ============================================
+    // Update/Insert by typeorm
+    // TODO: NeedFix without convert by fieldsName
+    const data = nextYearResults.map(
+      ({ monthNumber, cityId, temperature }) => ({
+        month: monthNumber,
+        cityId: cityId,
+        predict: temperature,
+      }),
+    );
+
+    await this.averageTemperatureRepository.upsert(
+      data,
+      ['month', 'cityId'], // composite conflict target
+    );
+    // ============================================
+
     // VALIDATION: Compare predictions vs actual for 2024
     // ============================================
     console.log('\n=== VALIDATION: 2024 Actual vs Predicted ===');

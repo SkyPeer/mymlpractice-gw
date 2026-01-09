@@ -24,11 +24,20 @@ export class ForecastController {
     private readonly loadModelService: LoadModelService,
   ) {}
 
+  // Get dataset
   @Get('/data')
   @Header('Cache-Control', 'no-store')
   // @UseGuards(AuthGuard)
   async getInitialData() {
     return await this.forecastService.getSourceData();
+  }
+
+  // get all models
+  @Get('/models')
+  @Header('Cache-Control', 'no-store')
+  // @UseGuards(AuthGuard)
+  async getModels() {
+    return await this.loadModelService.getModels();
   }
 
   // Create new model
@@ -53,8 +62,17 @@ export class ForecastController {
   @Post('/predict')
   @Header('Cache-Control', 'no-store')
   // @UseGuards(AuthGuard)
-  async predict(@Body('modelId') modelId: number) {
-    return this.forecastService.predict(modelId);
+  // TODO: Need Validate
+  async predict(
+    @Body()
+    params: {
+      cityId: number;
+      modelId: number;
+      nextYearMonths: number[];
+    },
+  ) {
+    const { cityId, modelId, nextYearMonths } = params;
+    return await this.forecastService.predict(cityId, modelId, nextYearMonths);
   }
 
   @Get('/trainings')
@@ -62,12 +80,5 @@ export class ForecastController {
   // @UseGuards(AuthGuard)
   async getModelTrainings(@Query('modelId') modelId: number) {
     return this.loadModelService.getTrainingsByModelId(modelId);
-  }
-
-  @Get('/models')
-  @Header('Cache-Control', 'no-store')
-  // @UseGuards(AuthGuard)
-  async getModels() {
-    return await this.loadModelService.getModels();
   }
 }

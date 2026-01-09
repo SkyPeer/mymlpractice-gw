@@ -9,22 +9,30 @@ import { AverageTemperatureEntity } from '@app/forecast/entities/average_tempera
 import { TrainingService } from '@app/forecast/forecast.training';
 import { CreatModelDto } from '@app/forecast/dto/createModel.dto';
 import { PredictService } from '@app/forecast/forecast.predict';
+import { CityEntity } from '@app/forecast/entities/city.entity';
 
 // TODO: NeedCheck dispose model
 @Injectable()
 export class ForecastService {
   constructor(
     private readonly dataSource: DataSource,
+    // Repo
     @InjectRepository(AverageTemperatureEntity)
     private readonly averageTemperatureRepository: Repository<AverageTemperatureEntity>,
     @InjectRepository(TF_trainingEntity)
     private readonly trainingRepository: Repository<TF_trainingEntity>,
+    @InjectRepository(CityEntity)
+    private readonly cityRepository: Repository<CityEntity>,
+    // Services
     private readonly saveModel: SaveModelService,
     private readonly loadModel: LoadModelService,
     private readonly trainingModel: TrainingService,
-    @InjectRepository(TFModel_Entity)
     private readonly predictService: PredictService,
   ) {}
+
+  async getCityById(cityId: number): Promise<CityEntity> {
+    return await this.cityRepository.findOne({ where: { id: cityId } });
+  }
 
   // async function getPartialTemperatures(): Promise<Partial<AverageTemperatureEntity>[]> {
   private async getSeasonsData(): Promise<any> {
@@ -121,19 +129,24 @@ export class ForecastService {
     }
   }
 
-  async predict(modelId: number) {
+  async predict(cityId: number, modelId: number, nextYearMonths: number[]) {
     try {
+      const city: CityEntity = await this.getCityById(cityId);
       const model = await this.loadModel.loadModelFromPostgreSQL(modelId);
       const originalData = await this.getSeasonsData();
 
       // TODO: move to Controller as request
-      const nextYearMonths = [37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48];
+      // const nextYearMonths = [
+      //   37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50,
+      // ];
 
-      return await this.predictService.predictData(
+      await this.predictService.predictData(
+        city,
         model,
         originalData,
         nextYearMonths,
       );
+      return 'ok';
     } catch (err) {
       if (err.response && err.status) {
         throw new HttpException(err.response, err.status);
