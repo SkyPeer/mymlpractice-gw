@@ -11,6 +11,7 @@ export class TemperatureSeed1234567890137 implements MigrationInterface {
       25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36,
     ];
 
+    // Weather data was provided by Open-Meteo API https://open-meteo.com/
     const temps = [
       // 2022 temperatures
       25.0, 25.5, 23.8, 21.2, 18.1, 15.3, 14.8, 16.2, 18.9, 21.4, 23.1, 24.6,
