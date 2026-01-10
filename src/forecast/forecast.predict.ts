@@ -27,32 +27,13 @@ export class PredictService {
     nextYearMonths: number[],
   ) {
     // ============================================
-    // PREDICT FOR NEXT YEAR (2025)
-    // Months 37-48
+    // PREDICT FOR NEXT MONTHS
     // ============================================
-
-    console.log('\n=== PREDICTIONS FOR NEXT YEAR (2025) from Save Model ===');
-
     const nextYearFeatures =
       this.trainingService.createTensorFeatures(nextYearMonths);
     const nextYearX = tf.tensor2d(nextYearFeatures);
     const nextYearPredictions = model.predict(nextYearX);
     const nextYearData = await nextYearPredictions.data();
-
-    // const monthNames = [
-    //   'Jan',
-    //   'Feb',
-    //   'Mar',
-    //   'Apr',
-    //   'May',
-    //   'Jun',
-    //   'Jul',
-    //   'Aug',
-    //   'Sep',
-    //   'Oct',
-    //   'Nov',
-    //   'Dec',
-    // ];
 
     const nextYearResults = [];
     for (let i = 0; i < nextYearMonths.length; i++) {
@@ -66,7 +47,6 @@ export class PredictService {
         cityId: city.id,
         temperature: temp, //y
       });
-      // console.log(`${monthNames[i]} 2025: ${temp.toFixed(1)}°C`);
     }
 
     // ============================================
@@ -100,8 +80,7 @@ export class PredictService {
       ['month', 'cityId'], // composite conflict target
     );
     // ============================================
-
-    // VALIDATION: Compare predictions vs actual for 2024
+    // VALIDATION: Compare predictions vs actual
     // ============================================
     console.log('\n=== VALIDATION: 2024 Actual vs Predicted ===');
 
