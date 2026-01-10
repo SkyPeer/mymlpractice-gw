@@ -1,6 +1,6 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DeleteResult, DataSource } from 'typeorm';
+import { Repository, DeleteResult, DataSource, IsNull, Not } from 'typeorm';
 import { SaveModelService } from '@app/forecast/forecast.saveModel';
 import { LoadModelService } from '@app/forecast/forecast.loadModel';
 import { TF_trainingEntity } from '@app/forecast/entities/tf_training.entity';
@@ -34,10 +34,32 @@ export class ForecastService {
     return await this.cityRepository.findOne({ where: { id: cityId } });
   }
 
+  private buildModelResponse({
+    id,
+    model_name,
+    batchSize,
+    epochs,
+    description,
+  }: TFModel_Entity): Partial<TFModel_Entity> {
+    return {
+      id,
+      model_name,
+      batchSize,
+      epochs,
+      description,
+    };
+  }
+
   // async function getPartialTemperatures(): Promise<Partial<AverageTemperatureEntity>[]> {
+  // TODO: needs to be typified
   private async getSeasonsData(): Promise<any> {
     // TODO: NeedUpdate by Training/Predict
-    const data = await this.averageTemperatureRepository.find();
+    const data: AverageTemperatureEntity[] =
+      await this.averageTemperatureRepository.find({
+        where: {
+          temp: Not(IsNull()),
+        },
+      });
     const months = data.map((item) => Number(item.month));
     const predicts = [];
     const trainings = [];
@@ -96,12 +118,12 @@ export class ForecastService {
         dataSet,
       );
 
-      const { trainingLog } = trainedModel;
-      return { trainingLog };
+      const { trainingLog, savedModel } = trainedModel;
+      return { trainingLog, model: this.buildModelResponse(savedModel) };
     } catch (error) {
       console.error(error);
       throw new HttpException(
-        'Error creating model',
+        'Error with training model',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -110,20 +132,20 @@ export class ForecastService {
   async retrainModel(id: number, modelParams: CreatModelDto) {
     try {
       const dataSet = await this.getSeasonsData();
-      const sourceModel = this.loadModel.getModelById(id);
-      const trainedModel = await this.trainingModel.retrainModel(
+      const sourceModel = await this.loadModel.getModelById(id);
+      const reTrainedModel = await this.trainingModel.retrainModel(
         id,
         modelParams,
         dataSet,
         sourceModel,
       );
 
-      const { trainingLog } = trainedModel;
-      return { trainingLog };
+      const { trainingLog, model } = reTrainedModel;
+      return { trainingLog, model: this.buildModelResponse(model) };
     } catch (error) {
       console.error(error);
       throw new HttpException(
-        'Error creating model',
+        'Error with retraining model',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -138,7 +160,7 @@ export class ForecastService {
       // TODO: move to Controller as request
       // const nextYearMonths = [
       //   37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50,
-      // ];
+      // ]; // Default
 
       await this.predictService.predictData(
         city,

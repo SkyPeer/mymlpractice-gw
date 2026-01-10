@@ -99,11 +99,12 @@ export class TrainingService {
         callbacks: {
           onEpochEnd: (epoch: number, logs: any) => {
             trainingLog.push({ epoch, loss: logs.loss });
+            //console.log('epoch:', epoch, ' - Log:', logs.loss);
 
-            // Training log for debug
-            // console.log('epoch:', epoch, ' - Log:', logs.loss);
-            // if (epoch % 50 === 0) {
-            //   console.log(`Epoch ${epoch}: loss = ${logs.loss.toFixed(4)}`);
+            // const divider = 10; // default 50
+            // if (epoch % divider === 0) {
+            //   // console.log(`Epoch ${epoch}: loss = ${logs.loss.toFixed(4)}`);
+            //   trainingLog.push({ epoch, loss: logs.loss.toFixed(4) });
             // }
           },
         },
@@ -146,7 +147,6 @@ export class TrainingService {
     console.log(' ');
     console.log(' ');
 
-
     await this.averageTemperatureRepository
       .createQueryBuilder('averageTemperature')
       .update(AverageTemperatureEntity)
@@ -181,7 +181,7 @@ export class TrainingService {
     );
     await this.trainingRepository.insert(trainLogs);
 
-    return { trainingLog };
+    return { trainingLog, savedModel };
   }
 
   async retrainModel(
@@ -230,6 +230,6 @@ export class TrainingService {
     await this.trainingRepository.delete({ model: sourceModel });
     await this.trainingRepository.insert(trainLogs);
 
-    return { trainingLog };
+    return { trainingLog, model: updatedModel };
   }
 }

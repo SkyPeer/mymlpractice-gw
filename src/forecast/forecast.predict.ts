@@ -85,6 +85,7 @@ export class PredictService {
     //
     // ============================================
     // Update/Insert by typeorm
+
     // TODO: NeedFix without convert by fieldsName
     const data = nextYearResults.map(
       ({ monthNumber, cityId, temperature }) => ({
