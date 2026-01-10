@@ -80,9 +80,9 @@ export class PredictService {
       ['month', 'cityId'], // composite conflict target
     );
     // ============================================
-    // VALIDATION: Compare predictions vs actual
+    // VALIDATION: Compare Actual vs Predicted
     // ============================================
-    console.log('\n=== VALIDATION: 2024 Actual vs Predicted ===');
+    console.log('\n=== VALIDATION: Actual vs Predicted ===');
 
     // Cleanup
     // trainPredictions.dispose();
