@@ -12,12 +12,10 @@ import {
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
-import { ArticleService } from '@app/article/article.service';
 import { AuthGuard } from '@app/user/guards/auth.guard';
-import { User } from '@app/user/decorators/user.decorator';
-import { UserEntity } from '@app/user/user.entity';
 import { ForecastService } from '@app/forecast/forecast.service';
-import { LoadModelService } from '@app/forecast/forecast.loadModel.service';
+import { LoadModelService } from '@app/forecast/forecast.loadModel';
+import { CreatModelDto } from '@app/forecast/dto/createModel.dto';
 
 @Controller('forecast')
 export class ForecastController {
@@ -26,31 +24,61 @@ export class ForecastController {
     private readonly loadModelService: LoadModelService,
   ) {}
 
+  // Get dataset
   @Get('/data')
   @Header('Cache-Control', 'no-store')
   // @UseGuards(AuthGuard)
   async getInitialData() {
-    return await this.forecastService.getSeasonsData();
+    return await this.forecastService.getSourceData();
   }
 
-  @Get('/train')
+  // get all models
+  @Get('/models')
   @Header('Cache-Control', 'no-store')
   // @UseGuards(AuthGuard)
-  async training() {
-    return this.forecastService.trainModel();
+  async getModels() {
+    return await this.loadModelService.getModels();
   }
 
-  @Get('/predict')
+  // Create new model
+  @Put('/model')
   @Header('Cache-Control', 'no-store')
   // @UseGuards(AuthGuard)
-  async predict() {
-    return this.forecastService.predict();
+  async createModel(@Body('modelParams') modelParams: CreatModelDto) {
+    return await this.forecastService.trainNewModel(modelParams);
   }
 
-  @Get('/model')
+  // Update model
+  @Post('/model')
   @Header('Cache-Control', 'no-store')
   // @UseGuards(AuthGuard)
-  async model() {
-    return this.loadModelService.getTrainings();
+  async reTrainModel(
+    @Body() params: { id: number; modelParams: CreatModelDto }, // TODO: use UpdateModelDto
+  ) {
+    const { id, modelParams } = params;
+    return await this.forecastService.retrainModel(id, modelParams);
+  }
+
+  @Post('/predict')
+  @Header('Cache-Control', 'no-store')
+  // @UseGuards(AuthGuard)
+  // TODO: Need Validate
+  async predict(
+    @Body()
+    params: {
+      cityId: number;
+      modelId: number;
+      nextYearMonths: number[];
+    },
+  ) {
+    const { cityId, modelId, nextYearMonths } = params;
+    return await this.forecastService.predict(cityId, modelId, nextYearMonths);
+  }
+
+  @Get('/trainings')
+  @Header('Cache-Control', 'no-store')
+  // @UseGuards(AuthGuard)
+  async getModelTrainings(@Query('modelId') modelId: number) {
+    return this.loadModelService.getTrainingsByModelId(modelId);
   }
 }

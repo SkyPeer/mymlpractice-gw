@@ -9,6 +9,7 @@ import {
 } from 'typeorm';
 import { ForecastTemperatureEntity } from '@app/forecast/entities/temperature.entity';
 import { TFModel_Entity } from '@app/forecast/entities/tf_model.entity';
+import { AverageTemperatureEntity } from '@app/forecast/entities/average_temperature.entity';
 
 @Entity({ name: 'forecast_cities' })
 export class CityEntity {
@@ -35,6 +36,9 @@ export class CityEntity {
 
   @OneToMany(() => ForecastTemperatureEntity, (temperature) => temperature.city)
   temperatures: ForecastTemperatureEntity[];
+
+  @OneToMany(() => AverageTemperatureEntity, (temp) => temp.city)
+  average_temperatures: AverageTemperatureEntity[];
 
   @OneToOne(() => TFModel_Entity, (tfModel) => tfModel.city, {
     onDelete: 'CASCADE',

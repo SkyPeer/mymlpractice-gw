@@ -3,7 +3,6 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/streamway.iml" filepath="$PROJECT_DIR$/.idea/streamway.iml" />
-      <module fileurl="file://$PROJECT_DIR$/../streamway-dashboard/.idea/streamway-dashboard.iml" filepath="$PROJECT_DIR$/../streamway-dashboard/.idea/streamway-dashboard.iml" />
     </modules>
   </component>
 </project>

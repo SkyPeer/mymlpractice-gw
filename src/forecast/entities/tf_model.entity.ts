@@ -19,6 +19,12 @@ export class TFModel_Entity {
   @Column({ unique: true, nullable: false })
   model_name: string;
 
+  @Column({ nullable: false })
+  epochs: number;
+
+  @Column({ nullable: false })
+  batchSize: number;
+
   @Column({ default: '' })
   model_topology: string;
 
