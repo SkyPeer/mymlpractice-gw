@@ -1,6 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class TemperatureSeed1234567890137 implements MigrationInterface {
+export class TemperatureSeed1234567890138 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     const months = [
       // 2022: months 1-12

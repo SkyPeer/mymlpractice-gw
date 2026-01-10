@@ -141,12 +141,6 @@ export class TrainingService {
       .map((item) => `WHEN month = ${item.x} THEN ${item.y}`)
       .join(' ');
 
-    console.log(' ');
-    console.log(' ');
-    console.log('trainings', trainings);
-    console.log(' ');
-    console.log(' ');
-
     await this.averageTemperatureRepository
       .createQueryBuilder('averageTemperature')
       .update(AverageTemperatureEntity)
