@@ -1,6 +1,6 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DeleteResult, DataSource, IsNull, Not } from 'typeorm';
+import { Repository, DeleteResult, DataSource, IsNull, Not, In } from 'typeorm';
 import { SaveModelService } from '@app/forecast/forecast.saveModel';
 import { LoadModelService } from '@app/forecast/forecast.loadModel';
 import { TF_trainingEntity } from '@app/forecast/entities/tf_training.entity';
@@ -52,12 +52,20 @@ export class ForecastService {
 
   // async function getPartialTemperatures(): Promise<Partial<AverageTemperatureEntity>[]> {
   // TODO: needs to be typified
-  private async getSeasonsData(): Promise<any> {
-    // TODO: NeedUpdate by Training/Predict
+  // TODO: NeedUpdate by Training/Predict
+  private async getSeasonsData(modelParams?: CreatModelDto): Promise<any> {
+    const filterParams: any = {
+      temp: Not(IsNull()),
+    };
+
+    if (modelParams?.trainingPeriod?.length) {
+      filterParams.month = In([...modelParams.trainingPeriod]);
+    }
+
     const data: AverageTemperatureEntity[] =
       await this.averageTemperatureRepository.find({
         where: {
-          temp: Not(IsNull()),
+          ...filterParams,
         },
       });
     const months = data.map((item) => Number(item.month));
@@ -112,7 +120,7 @@ export class ForecastService {
 
   async trainNewModel(modelParams: CreatModelDto) {
     try {
-      const dataSet = await this.getSeasonsData();
+      const dataSet = await this.getSeasonsData(modelParams);
       const trainedModel = await this.trainingModel.trainNewModel(
         modelParams,
         dataSet,
@@ -131,7 +139,7 @@ export class ForecastService {
 
   async retrainModel(id: number, modelParams: CreatModelDto) {
     try {
-      const dataSet = await this.getSeasonsData();
+      const dataSet = await this.getSeasonsData(modelParams);
       const sourceModel = await this.loadModel.getModelById(id);
       const reTrainedModel = await this.trainingModel.retrainModel(
         id,
@@ -151,6 +159,7 @@ export class ForecastService {
     }
   }
 
+  //TODO: fix: convert(cityId: number, modelId: number, nextYearMonths: number[]) to dto
   async predict(cityId: number, modelId: number, nextYearMonths: number[]) {
     try {
       const city: CityEntity = await this.getCityById(cityId);
