@@ -11,9 +11,11 @@ import { TF_trainingEntity } from '@app/forecast/entities/tf_training.entity';
 import { AverageTemperatureEntity } from '@app/forecast/entities/average_temperature.entity';
 import { PredictService } from '@app/forecast/forecast.predict';
 import { CityEntity } from '@app/forecast/entities/city.entity';
+import { SystemModule } from '@app/system/system.module';
 
 @Module({
   imports: [
+    SystemModule,
     TypeOrmModule.forFeature([
       UserEntity,
       TFModel_Entity,

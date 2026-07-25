@@ -8,6 +8,7 @@ import { AuthMiddleware } from '@app/middlewares/auth.middleware';
 import { ArticleModule } from '@app/article/article.module';
 import ormconfig from '@app/ormconfig';
 import { ForecastModule } from '@app/forecast/forecast.module';
+import { SystemModule } from '@app/system/system.module';
 
 // Examples api's requests
 // https://realworld-docs.netlify.app/
@@ -19,6 +20,7 @@ import { ForecastModule } from '@app/forecast/forecast.module';
     TagModule,
     ArticleModule,
     ForecastModule,
+    SystemModule,
   ],
   controllers: [AppController],
   providers: [AppService],
