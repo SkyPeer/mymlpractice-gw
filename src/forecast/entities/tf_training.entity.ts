@@ -30,6 +30,32 @@ export class TF_trainingEntity {
   })
   loss: number;
 
+  // Heap used by the process at the end of the epoch, MB
+  @Column({
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    nullable: true,
+    transformer: {
+      to: (value: number) => value,
+      from: (value: string | null) => (value == null ? null : parseFloat(value)),
+    },
+  })
+  memory: number | null;
+
+  // CPU usage since the previous epoch, percent of wall-clock time
+  @Column({
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    nullable: true,
+    transformer: {
+      to: (value: number) => value,
+      from: (value: string | null) => (value == null ? null : parseFloat(value)),
+    },
+  })
+  cpu: number | null;
+
   // @Column()
   // modelId: number;
 

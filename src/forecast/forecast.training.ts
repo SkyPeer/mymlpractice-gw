@@ -8,6 +8,7 @@ import { AverageTemperatureEntity } from '@app/forecast/entities/average_tempera
 import { SaveModelService } from '@app/forecast/forecast.saveModel';
 import { CreatModelDto } from '@app/forecast/dto/createModel.dto';
 import { LoadModelService } from '@app/forecast/forecast.loadModel';
+import { SystemService } from '@app/system/system.service';
 
 @Injectable()
 export class TrainingService {
@@ -18,6 +19,7 @@ export class TrainingService {
     private readonly trainingRepository: Repository<TF_trainingEntity>,
     private readonly saveModel: SaveModelService,
     private readonly loadModel: LoadModelService,
+    private readonly systemService: SystemService,
 
     @InjectRepository(TFModel_Entity)
     private readonly modelRepository: Repository<TFModel_Entity>,
@@ -92,13 +94,15 @@ export class TrainingService {
       console.log('Training model...');
       const trainingLog: Partial<TF_trainingEntity>[] = [];
       await model.fit(xData, yData, {
-        // epochs: 200, // 200  //TODO: config!
-        // batchSize: 12, // 12 //TODO: config!
-        epochs,
-        batchSize,
+        epochs, // Default 200
+        batchSize, // Default 12
         callbacks: {
           onEpochEnd: (epoch: number, logs: any) => {
-            trainingLog.push({ epoch, loss: logs.loss });
+            // memory: heap used by the process, MB
+            // cpu: percent of wall-clock time spent on CPU since the last epoch
+            const { memory, cpu } = this.systemService.usage;
+
+            trainingLog.push({ epoch, loss: logs.loss, memory, cpu });
             //console.log('epoch:', epoch, ' - Log:', logs.loss);
 
             // const divider = 10; // default 50
