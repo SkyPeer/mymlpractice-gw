@@ -8,6 +8,7 @@ import {
   JoinTable,
 } from 'typeorm';
 import { ArticleEntity } from '@app/article/article.entity';
+import { UserRole } from '@app/user/types/role.enum';
 import { hash } from 'bcrypt';
 
 @Entity({ name: 'users' })
@@ -30,6 +31,9 @@ export class UserEntity {
 
   @Column({ select: false })
   password: string;
+
+  @Column({ type: 'enum', enum: UserRole, default: UserRole.USER })
+  role: UserRole;
 
   @BeforeInsert()
   async hashPassword() {
