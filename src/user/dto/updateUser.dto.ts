@@ -1,34 +1,10 @@
-import {
-  IsEmail,
-  IsEnum,
-  IsNotEmpty,
-  IsOptional,
-  IsString,
-} from 'class-validator';
+import { IsEnum, IsOptional } from 'class-validator';
+import { UpdateProfileDto } from '@app/user/dto/updateProfile.dto';
 import { UserRole } from '@app/user/types/role.enum';
 
-export class UpdateUserDto {
-  @IsOptional()
-  @IsNotEmpty()
-  readonly username?: string;
-
-  @IsOptional()
-  @IsEmail()
-  readonly email?: string;
-
-  @IsOptional()
-  @IsNotEmpty()
-  readonly password?: string;
-
-  @IsOptional()
-  @IsString()
-  readonly bio?: string;
-
-  @IsOptional()
-  @IsString()
-  readonly image?: string;
-
-  // Only honoured on the admin route; editing your own profile can't change it.
+// Everything a user may change about themselves, plus the role — only the
+// admin route accepts this one.
+export class UpdateUserDto extends UpdateProfileDto {
   @IsOptional()
   @IsEnum(UserRole)
   readonly role?: UserRole;

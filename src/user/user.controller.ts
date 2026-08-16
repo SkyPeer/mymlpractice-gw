@@ -18,7 +18,9 @@ import { UserResponseInterface } from '@app/user/types/userResponse.interface';
 import { User } from '@app/user/decorators/user.decorator';
 import { UserEntity } from '@app/user/user.entity';
 import { AuthGuard } from '@app/user/guards/auth.guard';
+import { AdminGuard } from '@app/user/guards/admin.guard';
 import { UpdateUserDto } from '@app/user/dto/updateUser.dto';
+import { UpdateProfileDto } from '@app/user/dto/updateProfile.dto';
 
 @Controller('users')
 export class UserController {
@@ -35,7 +37,7 @@ export class UserController {
   }
 
   @Get('list')
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, AdminGuard)
   async getUsers(): Promise<UserEntity[]> {
     return this.userService.getUsers();
   }
@@ -50,7 +52,7 @@ export class UserController {
   }
 
   @Post('create')
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, AdminGuard)
   @UsePipes(new ValidationPipe())
   async createUser(
     @Body('user') createUserDto: CreateUserDto,
@@ -58,22 +60,22 @@ export class UserController {
     return this.userService.createUser(createUserDto);
   }
 
-  // Editing your own profile — role is dropped, only an admin can change it.
+  // Editing your own profile — role is not part of UpdateProfileDto, and
+  // whitelist strips it from the body, so only @Put(':id') can set it.
   // Declared above @Put(':id') so "current" is not read as an id.
   @Put('current')
   @UseGuards(AuthGuard)
-  @UsePipes(new ValidationPipe())
+  @UsePipes(new ValidationPipe({ whitelist: true }))
   async updateCurrentUser(
     @User('id') userId: number,
-    @Body('user') updateUserDto: UpdateUserDto,
+    @Body('user') updateProfileDto: UpdateProfileDto,
   ): Promise<UserResponseInterface> {
-    const { ...profile } = updateUserDto;
-    const user = await this.userService.updateUser(userId, profile);
+    const user = await this.userService.updateUser(userId, updateProfileDto);
     return this.userService.buildUserResponse(user);
   }
 
   @Put(':id')
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, AdminGuard)
   @UsePipes(new ValidationPipe())
   async updateUser(
     @Param('id', ParseIntPipe) userId: number,
@@ -83,7 +85,7 @@ export class UserController {
   }
 
   @Delete(':id')
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, AdminGuard)
   async deleteUser(
     @User() currentUser: UserEntity,
     @Param('id', ParseIntPipe) userId: number,
