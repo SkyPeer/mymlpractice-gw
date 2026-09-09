@@ -9,6 +9,7 @@ import { compare, hash } from 'bcrypt';
 import { UserResponseInterface } from '@app/user/types/userResponse.interface';
 import { GetUserDto } from '@app/user/dto/get-user.dto';
 import { UpdateUserDto } from '@app/user/dto/updateUser.dto';
+import { UpdateProfileDto } from '@app/user/dto/updateProfile.dto';
 import { UserRole } from '@app/user/types/role.enum';
 
 @Injectable()
@@ -107,23 +108,42 @@ export class UserService {
     return this.buildUserResponse(userByEmail);
   }
 
-  async updateUser(
+  // Admin route: anything a user may change about themselves, plus the role.
+  async updateUserByAdmin(
     userId: number,
     updateUserDto: UpdateUserDto,
   ): Promise<UserEntity> {
-    const user = await this.userRepository.findOne({ where: { id: userId } });
-    if (!user) {
-      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
-    }
+    const user = await this.getUserOrFail(userId);
 
     // Demoting the only admin would leave nobody able to manage users.
     if (user.role === UserRole.ADMIN && updateUserDto.role === UserRole.USER) {
       await this.assertNotLastAdmin(user.id);
     }
 
-    await this.assertUniqueCredentials(userId, updateUserDto);
+    return this.applyUpdate(user, updateUserDto);
+  }
 
-    const { password, ...rest } = updateUserDto;
+  // Self service route: the role is dropped here as well as by the
+  // whitelisting pipe, so no payload shape lets an account promote itself.
+  async updateProfile(
+    userId: number,
+    updateProfileDto: UpdateProfileDto,
+  ): Promise<UserEntity> {
+    const user = await this.getUserOrFail(userId);
+    const profile: UpdateProfileDto & { role?: UserRole } = {
+      ...updateProfileDto,
+    };
+    delete profile.role;
+    return this.applyUpdate(user, profile);
+  }
+
+  private async applyUpdate(
+    user: UserEntity,
+    dto: UpdateUserDto,
+  ): Promise<UserEntity> {
+    await this.assertUniqueCredentials(user.id, dto);
+
+    const { password, ...rest } = dto;
     const data: Partial<UserEntity> = { ...user, ...rest };
     if (password) {
       data.password = await hash(password, 10);
@@ -132,6 +152,14 @@ export class UserService {
     const saved = await this.userRepository.save(data);
     delete saved.password;
     return saved;
+  }
+
+  private async getUserOrFail(userId: number): Promise<UserEntity> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+    }
+    return user;
   }
 
   async getUsers(): Promise<UserEntity[]> {
@@ -199,7 +227,7 @@ export class UserService {
 
   private async assertUniqueCredentials(
     userId: number,
-    dto: UpdateUserDto,
+    dto: UpdateProfileDto,
   ): Promise<void> {
     if (dto.email) {
       const byEmail = await this.userRepository.findOne({

@@ -26,6 +26,16 @@ import { UpdateProfileDto } from '@app/user/dto/updateProfile.dto';
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
+  // User Authentication
+  @Post('login')
+  @UsePipes(new ValidationPipe())
+  async login(
+    @Body('user') getUserDto: GetUserDto,
+  ): Promise<UserResponseInterface> {
+    return this.userService.login(getUserDto);
+  }
+
+  // Get CurrentUser(byToken)
   @Get('current')
   @UseGuards(AuthGuard)
   @UsePipes(new ValidationPipe())
@@ -36,32 +46,9 @@ export class UserController {
     return this.userService.buildUserResponse(user);
   }
 
-  @Get('list')
-  @UseGuards(AuthGuard, AdminGuard)
-  async getUsers(): Promise<UserEntity[]> {
-    return this.userService.getUsers();
-  }
-
-  // NeedCreateUser Check
-  @Post('login')
-  @UsePipes(new ValidationPipe())
-  async login(
-    @Body('user') getUserDto: GetUserDto,
-  ): Promise<UserResponseInterface> {
-    return this.userService.login(getUserDto);
-  }
-
-  @Post('create')
-  @UseGuards(AuthGuard, AdminGuard)
-  @UsePipes(new ValidationPipe())
-  async createUser(
-    @Body('user') createUserDto: CreateUserDto,
-  ): Promise<UserEntity> {
-    return this.userService.createUser(createUserDto);
-  }
-
-  // Editing your own profile — role is not part of UpdateProfileDto, and
-  // whitelist strips it from the body, so only @Put(':id') can set it.
+  // Editing your own profile — role is not part of UpdateProfileDto, the
+  // whitelist strips it from the body and updateProfile() drops it again, so
+  // only @Put(':id') can set it.
   // Declared above @Put(':id') so "current" is not read as an id.
   @Put('current')
   @UseGuards(AuthGuard)
@@ -70,21 +57,37 @@ export class UserController {
     @User('id') userId: number,
     @Body('user') updateProfileDto: UpdateProfileDto,
   ): Promise<UserResponseInterface> {
-    const user = await this.userService.updateUser(userId, updateProfileDto);
+    const user = await this.userService.updateProfile(userId, updateProfileDto);
     return this.userService.buildUserResponse(user);
   }
 
-  @Put(':id')
+  // ----- Admin Endpoints ---- //
+  @Get('admin/list')
+  @UseGuards(AuthGuard, AdminGuard)
+  async getUsers(): Promise<UserEntity[]> {
+    return this.userService.getUsers();
+  }
+
+  @Post('admin/create')
+  @UseGuards(AuthGuard, AdminGuard)
+  @UsePipes(new ValidationPipe())
+  async createUser(
+    @Body('user') createUserDto: CreateUserDto,
+  ): Promise<UserEntity> {
+    return this.userService.createUser(createUserDto);
+  }
+
+  @Put('admin/:id')
   @UseGuards(AuthGuard, AdminGuard)
   @UsePipes(new ValidationPipe())
   async updateUser(
     @Param('id', ParseIntPipe) userId: number,
     @Body('user') updateUserDto: UpdateUserDto,
   ): Promise<UserEntity> {
-    return this.userService.updateUser(userId, updateUserDto);
+    return this.userService.updateUserByAdmin(userId, updateUserDto);
   }
 
-  @Delete(':id')
+  @Delete('admin/:id')
   @UseGuards(AuthGuard, AdminGuard)
   async deleteUser(
     @User() currentUser: UserEntity,
