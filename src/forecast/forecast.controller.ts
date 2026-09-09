@@ -26,6 +26,7 @@ export class ForecastController {
 
   // Get dataset
   @Get('/data')
+  @UseGuards(AuthGuard)
   @Header('Cache-Control', 'no-store')
   // @UseGuards(AuthGuard)
   async getInitialData() {
@@ -34,6 +35,7 @@ export class ForecastController {
 
   // get all models
   @Get('/models')
+  @UseGuards(AuthGuard)
   @Header('Cache-Control', 'no-store')
   // @UseGuards(AuthGuard)
   async getModels() {
@@ -42,6 +44,7 @@ export class ForecastController {
 
   // Create new model
   @Put('/model')
+  @UseGuards(AuthGuard)
   @Header('Cache-Control', 'no-store')
   // @UseGuards(AuthGuard)
   async createModel(@Body('modelParams') modelParams: CreatModelDto) {
@@ -50,6 +53,7 @@ export class ForecastController {
 
   // Update model
   @Post('/model')
+  @UseGuards(AuthGuard)
   @Header('Cache-Control', 'no-store')
   // @UseGuards(AuthGuard)
   async reTrainModel(
@@ -60,6 +64,7 @@ export class ForecastController {
   }
 
   @Post('/predict')
+  @UseGuards(AuthGuard)
   @Header('Cache-Control', 'no-store')
   // @UseGuards(AuthGuard)
   // TODO: Need Validate
@@ -76,6 +81,7 @@ export class ForecastController {
   }
 
   @Get('/trainings')
+  @UseGuards(AuthGuard)
   @Header('Cache-Control', 'no-store')
   // @UseGuards(AuthGuard)
   async getModelTrainings(@Query('modelId') modelId: number) {

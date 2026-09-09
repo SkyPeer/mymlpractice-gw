@@ -23,7 +23,8 @@ export class AuthMiddleware implements NestMiddleware {
       const decode: any = verify(token, JWT_SECRET);
       const user = await this.userService.findById(decode.id);
       req.user = user;
-      console.log('AuthMiddleware: decode', decode);
+      // console.log('AuthMiddleware: decode', decode);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (err) {
       req.user = null;
     } finally {

@@ -17,8 +17,8 @@ import { SystemModule } from '@app/system/system.module';
   imports: [
     TypeOrmModule.forRoot(ormconfig),
     UserModule,
-    TagModule,
-    ArticleModule,
+    // TagModule,
+    // ArticleModule,
     ForecastModule,
     SystemModule,
   ],

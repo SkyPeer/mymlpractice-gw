@@ -3,9 +3,11 @@ import {
   Controller,
   Post,
   Put,
+  Delete,
   Body,
+  Param,
+  ParseIntPipe,
   UsePipes,
-  Req,
   ValidationPipe,
   UseGuards,
 } from '@nestjs/common';
@@ -13,66 +15,85 @@ import { UserService } from '@app/user/user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { GetUserDto } from '@app/user/dto/get-user.dto';
 import { UserResponseInterface } from '@app/user/types/userResponse.interface';
-import { Request } from 'express';
-import { ExpressRequestInterface } from '@app/types/expressRequest.interface';
 import { User } from '@app/user/decorators/user.decorator';
 import { UserEntity } from '@app/user/user.entity';
 import { AuthGuard } from '@app/user/guards/auth.guard';
-import * as cluster from 'node:cluster';
+import { AdminGuard } from '@app/user/guards/admin.guard';
 import { UpdateUserDto } from '@app/user/dto/updateUser.dto';
+import { UpdateProfileDto } from '@app/user/dto/updateProfile.dto';
 
-@Controller()
+@Controller('users')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
-  @Post('users/create')
-  @UsePipes(new ValidationPipe())
-  async createUser(
-    @Body('user') createUserDto: CreateUserDto,
-  ): Promise<UserResponseInterface> {
-    return this.userService.createUser(createUserDto);
-  }
-
-  // NeedCreateUser Check
-  @Post('users/login')
+  // User Authentication
+  @Post('login')
   @UsePipes(new ValidationPipe())
   async login(
     @Body('user') getUserDto: GetUserDto,
   ): Promise<UserResponseInterface> {
-    // console.log('getUserDto', getUserDto)
-
-    console.log(getUserDto);
-
     return this.userService.login(getUserDto);
   }
 
-  @Get('user')
+  // Get CurrentUser(byToken)
+  @Get('current')
   @UseGuards(AuthGuard)
-  async currentUser(
-    // @Req() request: ExpressRequestInterface,
-    @User() user: UserEntity,
-    @User('id') currentUserId: number,
-  ): Promise<any> {
-    // console.log('user', user)
-    // console.log('currentUserId', currentUserId)
-    return this.userService.buildUserResponse(user);
-  }
-
-  @Put('user')
-  @UseGuards(AuthGuard)
-  async updateCurrentUser(
-    // @User() user: UserEntity,
+  @UsePipes(new ValidationPipe())
+  async getCurrentUser(
     @User('id') userId: number,
-    @Body('user') updateUserDto: UpdateUserDto,
   ): Promise<UserResponseInterface> {
-    // console.log('ttt currentUserId',currentUserId)
-    const user = await this.userService.updateUser(userId, updateUserDto);
+    const user = await this.userService.findById(userId);
     return this.userService.buildUserResponse(user);
   }
 
-  @Get('users')
+  // Editing your own profile — role is not part of UpdateProfileDto, the
+  // whitelist strips it from the body and updateProfile() drops it again, so
+  // only @Put(':id') can set it.
+  // Declared above @Put(':id') so "current" is not read as an id.
+  @Put('current')
   @UseGuards(AuthGuard)
+  @UsePipes(new ValidationPipe({ whitelist: true }))
+  async updateCurrentUser(
+    @User('id') userId: number,
+    @Body('user') updateProfileDto: UpdateProfileDto,
+  ): Promise<UserResponseInterface> {
+    const user = await this.userService.updateProfile(userId, updateProfileDto);
+    return this.userService.buildUserResponse(user);
+  }
+
+  // ----- Admin Endpoints ---- //
+  @Get('admin/list')
+  @UseGuards(AuthGuard, AdminGuard)
   async getUsers(): Promise<UserEntity[]> {
     return this.userService.getUsers();
+  }
+
+  @Post('admin/create')
+  @UseGuards(AuthGuard, AdminGuard)
+  @UsePipes(new ValidationPipe())
+  async createUser(
+    @Body('user') createUserDto: CreateUserDto,
+  ): Promise<UserEntity> {
+    return this.userService.createUser(createUserDto);
+  }
+
+  @Put('admin/:id')
+  @UseGuards(AuthGuard, AdminGuard)
+  @UsePipes(new ValidationPipe())
+  async updateUser(
+    @Param('id', ParseIntPipe) userId: number,
+    @Body('user') updateUserDto: UpdateUserDto,
+  ): Promise<UserEntity> {
+    return this.userService.updateUserByAdmin(userId, updateUserDto);
+  }
+
+  @Delete('admin/:id')
+  @UseGuards(AuthGuard, AdminGuard)
+  async deleteUser(
+    @User() currentUser: UserEntity,
+    @Param('id', ParseIntPipe) userId: number,
+  ): Promise<{ success: boolean }> {
+    await this.userService.deleteUser(currentUser, userId);
+    return { success: true };
   }
 }
