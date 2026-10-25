@@ -66,7 +66,6 @@ export class ForecastController {
   @Post('/predict')
   @UseGuards(AuthGuard)
   @Header('Cache-Control', 'no-store')
-  // @UseGuards(AuthGuard)
   // TODO: Need Validate
   async predict(
     @Body()
@@ -77,7 +76,11 @@ export class ForecastController {
     },
   ) {
     const { cityId, modelId, nextYearMonths } = params;
-    return await this.forecastService.predict(cityId, modelId, nextYearMonths);
+    return await this.forecastService.predict({
+      cityId,
+      modelId,
+      nextYearMonths,
+    });
   }
 
   @Get('/trainings')
