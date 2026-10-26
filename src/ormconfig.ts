@@ -1,5 +1,6 @@
 import { ConnectionOptions } from 'typeorm';
 import * as dotenv from 'dotenv';
+import { readFileSync } from 'fs';
 
 // Loaded here as well as in config.ts: the TypeORM CLI entry points
 // (ormdatasource / ormseeddatasource) pull in this file without ever touching
@@ -24,9 +25,22 @@ if (isProduction) {
   }
 }
 
-const { DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME, DB_SCHEMA } =
-  process.env;
-
+const {
+  DB_HOST,
+  DB_PORT,
+  DB_USER,
+  DB_PASSWORD,
+  DB_NAME,
+  DB_SCHEMA,
+  DB_SSL,
+  DB_SSL_CA,
+} = process.env;
+const ssl =
+  DB_SSL === 'true'
+    ? DB_SSL_CA
+      ? { ca: readFileSync(DB_SSL_CA, 'utf8') }
+      : { rejectUnauthorized: false }
+    : false;
 const config: ConnectionOptions = {
   type: 'postgres',
   host: DB_HOST,
@@ -36,6 +50,7 @@ const config: ConnectionOptions = {
   entities: [__dirname + '/**/*.entity{.ts,.js}'],
   database: DB_NAME,
   schema: DB_SCHEMA,
+  ssl,
   // autoLoadEntities: true,
   synchronize: false,
   logging: true,
