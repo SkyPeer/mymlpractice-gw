@@ -160,7 +160,7 @@ export class ForecastService {
   }
 
   //TODO: fix: convert(cityId: number, modelId: number, nextYearMonths: number[]) to dto
-  async predict(cityId: number, modelId: number, nextYearMonths: number[]) {
+  async predict({ cityId, modelId, nextYearMonths }) {
     try {
       const city: CityEntity = await this.getCityById(cityId);
       const model = await this.loadModel.loadModelFromPostgreSQL(modelId);

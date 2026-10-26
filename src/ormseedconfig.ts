@@ -1,11 +1,11 @@
 import ormconfig from '@app/ormconfig';
+
 const ormSeedConfig = {
   ...ormconfig,
-  /*migrations: [__dirname + '/migrations/!**!/!*{.ts,.js}'],*/
   migrations: ['src/seeds/*.ts'],
-  // cli: {
-  //     migrationsDir: 'src/migrations',
-  // }
+  // Fixtures are tracked apart from the schema history, so `migrations` holds
+  // only real schema changes and the seed records can be cleared on their own.
+  migrationsTableName: 'seeds',
 };
 
 export default ormSeedConfig;

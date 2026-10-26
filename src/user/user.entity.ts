@@ -8,7 +8,8 @@ import {
   JoinTable,
 } from 'typeorm';
 import { ArticleEntity } from '@app/article/article.entity';
-import { hash } from 'bcrypt';
+import { UserRole } from '@app/user/types/role.enum';
+import { hashPassword as hashWithPepper } from '@app/user/password';
 
 @Entity({ name: 'users' })
 export class UserEntity {
@@ -31,9 +32,12 @@ export class UserEntity {
   @Column({ select: false })
   password: string;
 
+  @Column({ type: 'enum', enum: UserRole, default: UserRole.USER })
+  role: UserRole;
+
   @BeforeInsert()
   async hashPassword() {
-    this.password = await hash(this.password, 10);
+    this.password = await hashWithPepper(this.password);
   }
 
   @OneToMany(() => ArticleEntity, (article) => article.author)

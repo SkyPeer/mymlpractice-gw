@@ -3,3 +3,5 @@ node_modules
 streamway.iml
 vcs.xml
 /dist/
+.env
+.env.local
