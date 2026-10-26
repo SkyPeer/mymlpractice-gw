@@ -9,7 +9,7 @@ import {
 } from 'typeorm';
 import { ArticleEntity } from '@app/article/article.entity';
 import { UserRole } from '@app/user/types/role.enum';
-import { hash } from 'bcrypt';
+import { hashPassword as hashWithPepper } from '@app/user/password';
 
 @Entity({ name: 'users' })
 export class UserEntity {
@@ -37,7 +37,7 @@ export class UserEntity {
 
   @BeforeInsert()
   async hashPassword() {
-    this.password = await hash(this.password, 10);
+    this.password = await hashWithPepper(this.password);
   }
 
   @OneToMany(() => ArticleEntity, (article) => article.author)

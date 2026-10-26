@@ -5,7 +5,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UserEntity } from './user.entity';
 import { sign } from 'jsonwebtoken';
 import { JWT_SECRET } from '@app/config';
-import { compare, hash } from 'bcrypt';
+import { hashPassword, verifyPassword } from '@app/user/password';
 import { UserResponseInterface } from '@app/user/types/userResponse.interface';
 import { GetUserDto } from '@app/user/dto/get-user.dto';
 import { UpdateUserDto } from '@app/user/dto/updateUser.dto';
@@ -88,13 +88,19 @@ export class UserService {
       throw new HttpException('User not found', HttpStatus.NOT_FOUND);
     }
 
-    const isPasswordCorrect = await compare(
+    const { success, needsRehash } = await verifyPassword(
       getUserDto.password,
       userByEmail.password,
     );
 
-    if (!isPasswordCorrect) {
+    if (!success) {
       throw new HttpException('Password error', HttpStatus.FORBIDDEN);
+    }
+
+    if (needsRehash) {
+      await this.userRepository.update(userByEmail.id, {
+        password: await hashPassword(getUserDto.password),
+      });
     }
 
     // try {
@@ -146,7 +152,7 @@ export class UserService {
     const { password, ...rest } = dto;
     const data: Partial<UserEntity> = { ...user, ...rest };
     if (password) {
-      data.password = await hash(password, 10);
+      data.password = await hashPassword(password);
     }
 
     const saved = await this.userRepository.save(data);
